@@ -25,3 +25,9 @@ target "default-debian" {
   context  = "images/default/debian"
   tags     = tags("default", "debian")
 }
+
+target "default-alpine" {
+  inherits = ["_common"]
+  context  = "images/default/alpine"
+  tags     = tags("default", "alpine")
+}
