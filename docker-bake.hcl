@@ -50,3 +50,22 @@ target "dev-alpine" {
 group "publish" {
   targets = ["default-debian", "default-alpine", "dev-debian", "dev-alpine"]
 }
+
+# Playdate: built locally only, never pushed (Panic's SDK license forbids redistribution).
+# Locally its parent is the published dev:debian; CI overrides PLAYDATE_PARENT=target:dev-debian
+# and INSTALL_SDK=0. The tag has no registry so it can't be pushed to GHCR by accident.
+variable "PLAYDATE_PARENT" { default = "docker-image://ghcr.io/jamesjnadeau/hermes-workers/dev:debian" }
+variable "INSTALL_SDK"     { default = "1" }
+
+target "playdate-debian" {
+  inherits = ["_common"]
+  context  = "images/playdate/debian"
+  contexts = { parent = PLAYDATE_PARENT }
+  args     = { INSTALL_SDK = INSTALL_SDK }
+  tags     = ["hermes-workers/playdate:debian"]
+}
+
+# What CI builds and tests (publish + playdate without the SDK).
+group "ci" {
+  targets = ["default-debian", "default-alpine", "dev-debian", "dev-alpine", "playdate-debian"]
+}
