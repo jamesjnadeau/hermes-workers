@@ -94,5 +94,6 @@ package public.
   `target:dev-alpine` and tag it `tags("go", "alpine")`. Copy rather than share: Alpine and
   Debian package names differ often enough that one shared Dockerfile gets messy.
 - **A new base that isn't built on one of ours:** use a normal `FROM some/image:tag` and leave
-  out `contexts`. It still needs `CMD ["sleep","infinity"]`, a `pn` user (1000:1000) with sudo,
+  out `contexts`. It still needs `CMD ["sleep","infinity"]`, a `pn` user (1000:1000) whose home is
+  outside `/home` (Hermes covers `/home` with an empty temporary folder; see `default/alpine`),
   and bash, because the test runner calls `bash`.

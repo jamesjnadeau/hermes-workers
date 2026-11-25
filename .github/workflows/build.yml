@@ -45,11 +45,13 @@ jobs:
         run: docker buildx bake --load ci
 
       - name: Test
+        shell: bash
         run: |
           for t in default-debian default-alpine dev-debian dev-alpine; do
             scripts/test-image.sh "$t"
           done
           EXPECT_SDK=0 scripts/test-image.sh playdate-debian
+          tests/secret-scan.sh   # the secret check itself still catches planted tokens
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -61,6 +63,7 @@ jobs:
 
       - name: Push
         if: github.event_name != 'pull_request'
+        shell: bash   # -eo pipefail: a failing bake/jq must fail the step, not push nothing
         run: |
           docker buildx bake --print publish | jq -r '.target[].tags[]' | while read -r ref; do
             docker push "$ref"

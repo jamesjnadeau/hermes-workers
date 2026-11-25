@@ -33,8 +33,16 @@ RUN apk add --no-cache chromium nss freetype harfbuzz ttf-dejavu font-noto; \
     npm install -g playwright@1
 
 # pn user (1000:1000, from the base) gets bash and passwordless sudo, like the Nous sandbox.
+# Its home lives in /var/lib/pn, not /home: Hermes mounts an empty root-owned tmpfs over
+# /home, so as uid 1000 a home under /home can't be created (uv, npm, Chromium all fail).
+# /home/pn stays as a link for plain `docker run`.
 RUN id pn >/dev/null 2>&1 || { addgroup -g 1000 pn; adduser -D -u 1000 -G pn -h /home/pn pn; }; \
-    sed -i 's#^\(pn:.*:\)/bin/sh$#\1/bin/bash#' /etc/passwd; \
+    mkdir -p /var/lib/pn; \
+    cp -a /home/pn/. /var/lib/pn/ 2>/dev/null || true; \
+    chown -R 1000:1000 /var/lib/pn; \
+    rm -rf /home/pn; \
+    ln -s /var/lib/pn /home/pn; \
+    sed -i 's#^pn:\(.*\):/home/pn:/bin/sh$#pn:\1:/var/lib/pn:/bin/bash#' /etc/passwd; \
     echo "pn ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/pn; \
     chmod 0440 /etc/sudoers.d/pn
 

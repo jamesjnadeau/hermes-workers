@@ -42,3 +42,10 @@ RUN set -eux; \
     rm /tmp/rustup-init; \
     chown -R 1000:1000 /usr/local/rustup /usr/local/cargo; \
     rustc --version
+
+# Hermes mounts an empty root-owned tmpfs over /home (and /root), so as uid 1000 the
+# default HOME=/home/pn doesn't exist and can't be created: uv, npm, git --global and
+# Chromium all fail. Move pn's home out of /home; keep /home/pn as a link for plain
+# `docker run`.
+RUN usermod -d /var/lib/pn -m pn; \
+    ln -s /var/lib/pn /home/pn

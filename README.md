@@ -15,12 +15,18 @@ job needs. GitHub Actions builds them, tests them and publishes them to GHCR eve
 | `hermes-workers/playdate:debian` | `dev:debian` | Playdate SDK, `gcc-arm-none-eabi` + newlib, WebKitGTK for the simulator | **no, local build only** ([why](#playdate)) |
 
 All images share these traits:
-- user `pn` (1000:1000) with passwordless sudo, `CMD ["sleep","infinity"]` and no entrypoint;
+- user `pn` (1000:1000), home `/var/lib/pn` (see below), `CMD ["sleep","infinity"]` and no entrypoint;
+- passwordless sudo for `pn`, which only works outside Hermes: Hermes starts workers with `no-new-privileges`, so `sudo` always fails inside a Hermes session. Install what you need in the image;
 - `XDG_RUNTIME_DIR=/tmp/hermes-runtime`;
 - Rust in `/usr/local/rustup` and `/usr/local/cargo`, owned by uid 1000, so `cargo install` works when Hermes runs the container as your user;
 - no credentials baked in (CI checks for this).
 
 The Debian images keep everything from the Nous sandbox: the VNC/xfce desktop, `cua-driver` and Playwright Chromium in `/opt/playwright`.
+
+**Why `pn`'s home is `/var/lib/pn`:** Hermes mounts an empty, root-owned temporary folder over
+`/home` and `/root`. In a profile with `docker_run_as_host_user: true`, the agent runs as uid
+1000, so a home under `/home` can't be created, and uv, npm, `git config --global` and Chromium
+all fail. With the home in `/var/lib/pn` they work. `/home/pn` links there for plain `docker run`.
 
 Each push gets three tags:
 - `:<distro>`, which moves on every build;
@@ -97,8 +103,15 @@ scripts/test-image.sh playdate-debian
 
 The result is `hermes-workers/playdate:debian`, with the SDK in `/opt/playdate-sdk`
 (`PLAYDATE_SDK_PATH`) and `pdc`, `pdutil` and `PlaydateSimulator` on PATH. Re-run the build to
-pick up a newer SDK (`--set playdate-debian.args.PLAYDATE_SDK_URL=...` pins a specific
-version). The simulator can run on the inherited VNC desktop. The SDK's `setup.sh` (udev rules,
+pick up a newer SDK, but skip the layer cache and pull a fresh parent first, or Docker reuses
+the old SDK layer:
+
+```bash
+docker pull ghcr.io/jamesjnadeau/hermes-workers/dev:debian
+docker buildx bake --load --no-cache playdate-debian
+```
+
+`--set playdate-debian.args.PLAYDATE_SDK_URL=...` pins a specific SDK version. The simulator can run on the inherited VNC desktop. The SDK's `setup.sh` (udev rules,
 icons) isn't run, so a USB-connected Playdate isn't set up. If the build fails to fetch
 `dev:debian`, the package is still private. Make it public (see above) or `docker login ghcr.io`.
 
@@ -114,8 +127,12 @@ scripts/test-image.sh dev-alpine                   # test it
 ```
 
 `scripts/test-image.sh` checks that the image keeps `sleep infinity` as its command, has no
-entrypoint and contains no tokens. It then runs the image's `test.sh` twice: as root, and as
-uid 1000 with an unfamiliar `HOME`, the way Hermes runs it.
+entrypoint and contains no tokens in its env, labels, build history or config files. It then
+runs the image's `test.sh` four ways:
+- as root;
+- as uid 1000 with an unfamiliar `HOME`;
+- with Hermes's own docker flags (capabilities dropped, `no-new-privileges`, temporary folders over `/tmp`, `/run`, `/home` and `/root`), as root;
+- the same Hermes flags, as uid 1000.
 
 ## Adding an image
 
