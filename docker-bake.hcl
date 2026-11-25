@@ -31,3 +31,22 @@ target "default-alpine" {
   context  = "images/default/alpine"
   tags     = tags("default", "alpine")
 }
+
+target "dev-debian" {
+  inherits = ["_common"]
+  context  = "images/dev/debian"
+  contexts = { parent = "target:default-debian" }
+  tags     = tags("dev", "debian")
+}
+
+target "dev-alpine" {
+  inherits = ["_common"]
+  context  = "images/dev/alpine"
+  contexts = { parent = "target:default-alpine" }
+  tags     = tags("dev", "alpine")
+}
+
+# Everything CI pushes to the registry.
+group "publish" {
+  targets = ["default-debian", "default-alpine", "dev-debian", "dev-alpine"]
+}
