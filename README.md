@@ -133,8 +133,11 @@ entrypoint and contains no tokens in its env, labels, build history or config fi
 runs the image's `test.sh` four ways:
 - as root;
 - as uid 1000 with an unfamiliar `HOME`;
-- with Hermes's own docker flags (capabilities dropped, `no-new-privileges`, temporary folders over `/tmp`, `/run`, `/home` and `/root`), as root;
-- the same Hermes flags, as uid 1000.
+- with Hermes's own docker flags (capabilities dropped, `no-new-privileges`, temporary folders over `/tmp`, `/run`, `/home` and `/root`) in a login shell, as root;
+- the same Hermes flags and login shell, as uid 1000.
+
+The login shell matters because Hermes takes its environment from `bash -l`, and `/etc/profile`
+resets `PATH`. The images put Rust and the Playdate SDK back on `PATH` with `/etc/profile.d` scripts.
 
 ## Adding an image
 

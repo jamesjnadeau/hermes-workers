@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Test one built image: host-side contract + secret checks, then the image's own
-# test.sh three ways: as the default user; as uid 1000 with an unfamiliar HOME; and with
+# test.sh four ways: as the default user; as uid 1000 with an unfamiliar HOME; and with
 # the flags Hermes's docker backend uses (caps dropped, no-new-privileges, tmpfs over
-# /tmp /run /home /root), as root and as uid 1000 (docker_run_as_host_user).
+# /tmp /run /home /root) in a login shell like Hermes's, as root and as uid 1000.
 #
 #   scripts/test-image.sh <image>-<distro>       e.g. scripts/test-image.sh dev-alpine
 #
@@ -49,11 +49,13 @@ file_hits=$(docker run --rm --entrypoint sh "$ref" -c \
 [ -n "$file_hits" ] && hits=$(printf '%s\nfiles: %s' "$hits" "$file_hits")
 if [ -z "$hits" ]; then echo "  PASS  no token/secret values in env, labels or history"; else echo "  FAIL  possible secrets:"; echo "$hits" | sed 's/^/        /'; fail=1; fi
 
+# BASH_FLAGS=-l runs the test in a login shell. Hermes snapshots its environment from
+# `bash -l`, and /etc/profile resets PATH, so tools found only through ENV PATH vanish there.
 run_test() {
   docker run --rm "$@" \
     -e EXPECT_SDK="${EXPECT_SDK:-1}" \
     -v "$root/images:/images:ro" -v "$root/tests:/tests:ro" \
-    "$ref" bash "/images/$image/$distro/test.sh"
+    "$ref" bash ${BASH_FLAGS:-} "/images/$image/$distro/test.sh"
 }
 
 echo "== $ref: test.sh (default user)"
@@ -67,10 +69,10 @@ hermes_flags=(--cap-drop ALL --cap-add DAC_OVERRIDE --cap-add CHOWN --cap-add FO
   --tmpfs /tmp:rw,nosuid,size=512m --tmpfs /var/tmp:rw,noexec,nosuid,size=256m
   --tmpfs /run:rw,noexec,nosuid,size=64m
   --tmpfs /home:rw,exec,size=1g --tmpfs /root:rw,exec,size=1g)
-echo "== $ref: test.sh (Hermes flags, root)"
-run_test "${hermes_flags[@]}" --cap-add SETUID --cap-add SETGID || fail=1
-echo "== $ref: test.sh (Hermes flags, uid 1000)"
-run_test "${hermes_flags[@]}" --user 1000:1000 || fail=1
+echo "== $ref: test.sh (Hermes flags, root, login shell)"
+BASH_FLAGS=-l run_test "${hermes_flags[@]}" --cap-add SETUID --cap-add SETGID || fail=1
+echo "== $ref: test.sh (Hermes flags, uid 1000, login shell)"
+BASH_FLAGS=-l run_test "${hermes_flags[@]}" --user 1000:1000 || fail=1
 
 [ "$fail" -eq 0 ] && echo "== $ref: OK" || echo "== $ref: FAILED"
 exit "$fail"

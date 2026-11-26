@@ -32,6 +32,9 @@ Keep these intact:
 - don't add an `ENTRYPOINT`, and don't change `CMD` (Hermes needs `sleep infinity`);
 - don't switch away from root at the end (the parents run as root, and Hermes picks the user);
 - install anything uid 1000 must write to as owned by `1000:1000`;
+- if you add a folder to `PATH` with `ENV`, also add it in an `/etc/profile.d/` script (see
+  `images/playdate/debian/Dockerfile`). Hermes takes its environment from a login shell, and
+  `/etc/profile` resets `PATH`, so a folder that's only in `ENV PATH` isn't found in Hermes;
 - **never** pass a token as a build `ARG` or `ENV`. Secrets come from the Hermes profile at runtime.
 
 ## 3. Write `test.sh`

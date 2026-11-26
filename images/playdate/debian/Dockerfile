@@ -28,3 +28,6 @@ RUN set -eux; \
 
 ENV PLAYDATE_SDK_PATH=/opt/playdate-sdk \
     PATH=/opt/playdate-sdk/bin:$PATH
+
+# Login shells (Hermes snapshots `bash -l`) reset PATH in /etc/profile; put the SDK back.
+RUN printf '%s\n' 'case ":$PATH:" in *:/opt/playdate-sdk/bin:*) ;; *) PATH=/opt/playdate-sdk/bin:$PATH ;; esac' 'export PATH' > /etc/profile.d/hermes-workers-playdate.sh

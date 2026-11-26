@@ -57,4 +57,7 @@ RUN curl -fsSL https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-mus
     chown -R 1000:1000 /usr/local/rustup /usr/local/cargo; \
     rustc --version
 
+# Login shells (Hermes snapshots `bash -l`) reset PATH in /etc/profile; put cargo back.
+RUN printf '%s\n' 'case ":$PATH:" in *:/usr/local/cargo/bin:*) ;; *) PATH=/usr/local/cargo/bin:$PATH ;; esac' 'export PATH' > /etc/profile.d/hermes-workers-rust.sh
+
 CMD ["sleep", "infinity"]
