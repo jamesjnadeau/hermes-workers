@@ -73,8 +73,10 @@ The floating tags move weekly. Re-pull on the host to pick up a new build. Conta
 has already started keep the old image until they're recreated. To roll back, point
 `docker_image` at a dated tag.
 
-Whether Hermes pulls a missing image itself through the docker socket proxy is **not yet
-verified**. Until it is, pull new images on the host before switching a profile to them.
+Hermes pulls a missing image itself through the docker socket proxy, so a profile can point
+at an image the host doesn't have yet. This was verified on 2026-11-26 with `default:alpine`.
+It only pulls when the image is **missing**, so use `docker pull` to refresh a floating tag the
+host already has.
 
 ### One-time setup after the first publish
 
@@ -87,8 +89,8 @@ Public. Then the host can pull without `docker login`.
 - Alpine has no desktop or computer-use layer. Use Debian for that.
 - Playwright's bundled browsers and the Python `playwright` wheel are glibc-only and don't work on Alpine.
 - The Alpine images ship Alpine's own Chromium at `/usr/bin/chromium` (`CHROME_PATH`) and a global Node `playwright`. Launch Playwright with `executablePath: process.env.CHROME_PATH` and `--no-sandbox`.
-- For Hermes's own browser tool, set the `browser` `executable_path` to `/usr/bin/chromium`. Whether that tool works against an Alpine worker is **not yet verified**.
-- Use Debian for profiles that do a lot of browsing.
+- That Chromium is for scripts the agent writes and runs in the worker. **Hermes's own browser tool doesn't use the worker** unless Hermes's Bot Desktop is placed in the sandbox, and that needs the Debian desktop layer. Otherwise the tool runs Chromium on the Hermes side: the configured cloud browser (in this setup, Browser Use through the Nous tool gateway) or a local Chromium in the Hermes container. Verified on 2026-11-26: a profile on `default:alpine` browsed fine with `browser_exec`. Don't set `browser.executable_path` to `/usr/bin/chromium`. That setting is for the Hermes-side Chromium, and the path doesn't exist there.
+- Use Debian if you want the agent's browser visible on the sandbox desktop (Bot Desktop), or Playwright from Python.
 
 ## Playdate
 
