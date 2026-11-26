@@ -1,0 +1,70 @@
+# Build every image, test every image, then push the published ones to GHCR.
+# PRs build and test but never push. playdate is built without the SDK and never pushed
+# (Panic's SDK license forbids redistribution).
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"   # weekly: pick up new Nous / nikolaik / Alpine base images
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PLAYDATE_PARENT: target:dev-debian
+      INSTALL_SDK: "0"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Free disk space (Debian images are ~4 GB each)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af
+          df -h /
+
+      - name: Tag variables
+        run: |
+          echo "DATE=$(date -u +%Y%m%d)" >> "$GITHUB_ENV"
+          echo "SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      # The runner's default docker builder loads images straight into the local store,
+      # which the tests and `docker push` below use.
+      - name: Build
+        run: docker buildx bake --load ci
+
+      - name: Test
+        shell: bash
+        run: |
+          for t in default-debian default-alpine dev-debian dev-alpine; do
+            scripts/test-image.sh "$t"
+          done
+          EXPECT_SDK=0 scripts/test-image.sh playdate-debian
+          tests/secret-scan.sh   # the secret check itself still catches planted tokens
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        shell: bash   # -eo pipefail: a failing bake/jq must fail the step, not push nothing
+        run: |
+          docker buildx bake --print publish | jq -r '.target[].tags[]' | while read -r ref; do
+            docker push "$ref"
+          done
