@@ -11,6 +11,7 @@ run "python is 3.13"       python3 -c 'import sys; assert sys.version_info[:2] =
 run "pillow imports"       python3 -c 'import PIL'
 run "cargo home writable"  sh -c 'test -w /usr/local/cargo && test -w /usr/local/cargo/bin && test -w /usr/local/rustup'
 run "rust compiles"        sh -c 'd=$(mktemp -d) && cd "$d" && cargo init -q --name t && cargo build -q --offline'
+run "sbin dirs on PATH"   sh -c 'case ":$PATH:" in *:/usr/sbin:*) case ":$PATH:" in *:/sbin:*) ;; *) exit 1;; esac ;; *) exit 1;; esac'
 run "pn user is 1000"      sh -c '[ "$(id -u pn)" = 1000 ]'
 run "HOME is writable"     sh -c 'mkdir -p "$HOME/.cache/probe" && test -w "$HOME/.cache/probe"'
 run "uv works"             sh -c 'd=$(mktemp -d) && cd "$d" && uv venv -q .venv'

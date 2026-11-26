@@ -44,7 +44,11 @@ RUN set -eux; \
     rustc --version
 
 # Login shells (Hermes snapshots `bash -l`) reset PATH in /etc/profile; put cargo back.
-RUN printf '%s\n' 'case ":$PATH:" in *:/usr/local/cargo/bin:*) ;; *) PATH=/usr/local/cargo/bin:$PATH ;; esac' 'export PATH' > /etc/profile.d/hermes-workers-rust.sh
+# Debian's /etc/profile also leaves the sbin folders out for non-root users; add them too.
+RUN printf '%s\n' \
+      'case ":$PATH:" in *:/usr/local/cargo/bin:*) ;; *) PATH=/usr/local/cargo/bin:$PATH ;; esac' \
+      'for d in /usr/local/sbin /usr/sbin /sbin; do case ":$PATH:" in *:$d:*) ;; *) PATH=$PATH:$d ;; esac; done' \
+      'export PATH' > /etc/profile.d/hermes-workers-rust.sh
 
 # Hermes mounts an empty root-owned tmpfs over /home (and /root), so as uid 1000 the
 # default HOME=/home/pn doesn't exist and can't be created: uv, npm, git --global and
