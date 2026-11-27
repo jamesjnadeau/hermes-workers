@@ -13,7 +13,7 @@ RUN set -eux; \
       > /etc/apt/sources.list.d/github-cli.list; \
     apt-get -o Acquire::Retries=3 update; \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
-      gh sqlite3 pandoc poppler-utils shellcheck make cmake; \
+      gh sqlite3 pandoc poppler-utils shellcheck make cmake universal-ctags; \
     rm -rf /var/lib/apt/lists/*; \
     command -v fd >/dev/null || ln -s /usr/bin/fdfind /usr/local/bin/fd
 
@@ -29,6 +29,17 @@ RUN set -eux; \
     echo "$(grep '^yq_linux_amd64 ' checksums | awk -v c="$col" '{print $c}')  yq_linux_amd64" | sha256sum -c -; \
     install -m 755 yq_linux_amd64 /usr/local/bin/yq; \
     rm -f yq_linux_amd64 checksums checksums_hashes_order
+
+# TokToken (codebase symbol indexer / MCP server for agents). Single binary from the GitHub
+# release, checksum-pinned; it shells out to universal-ctags, installed above.
+ARG TOKTOKEN_VERSION=v0.7.0
+ARG TOKTOKEN_SHA256=e0359d1237e9d834b649df110be99063777cd0dd2b1dc793de8804b84e67ca2a
+RUN set -eux; \
+    curl -fsSL -o /usr/local/bin/toktoken \
+      "https://github.com/mauriziofonte/toktoken/releases/download/${TOKTOKEN_VERSION}/toktoken-linux-x86_64"; \
+    echo "${TOKTOKEN_SHA256}  /usr/local/bin/toktoken" | sha256sum -c -; \
+    chmod 755 /usr/local/bin/toktoken; \
+    toktoken --version
 
 # Rust, system-wide but owned by pn (uid 1000) so cargo install / rustup target add work
 # when Hermes runs the container as the host user.

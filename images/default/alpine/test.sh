@@ -37,4 +37,7 @@ run "node playwright drives system chromium" node -e '
   })().catch(e => { console.error(e); process.exit(1); });'
 run "no github token"      test -z "${GITHUB_TOKEN:-}${GH_TOKEN:-}"
 
+run "ctags is universal"    sh -c 'ctags --version | head -1 | grep -q "Universal Ctags"'
+run "toktoken indexes code" sh -c 'd=$(mktemp -d) && cd "$d" && printf "int answer(void){return 42;}\\n" > a.c && toktoken index:create . >/dev/null 2>&1 && toktoken search:symbols answer | grep -q answer'
+
 _maybe_finish "$@"

@@ -8,8 +8,8 @@ job needs. GitHub Actions builds them, tests them and publishes them to GHCR eve
 
 | Image | Built on | Adds | Published |
 |---|---|---|---|
-| `ghcr.io/jamesjnadeau/hermes-workers/default:debian` | `nousresearch/hermes-sandbox:desktop` | gh, Rust (rustup stable + rustfmt, clippy), sqlite3, pandoc, poppler-utils, mikefarah yq, shellcheck, make, cmake | yes |
-| `ghcr.io/jamesjnadeau/hermes-workers/default:alpine` | `nikolaik/python-nodejs:python3.13-nodejs26-alpine` | the Nous sandbox's CLI tools, `pn` user + sudo, uv/pipenv/poetry/yarn, Pillow, system Chromium + Node Playwright, and the same extras as `default:debian` | yes |
+| `ghcr.io/jamesjnadeau/hermes-workers/default:debian` | `nousresearch/hermes-sandbox:desktop` | gh, Rust (rustup stable + rustfmt, clippy), sqlite3, pandoc, poppler-utils, mikefarah yq, shellcheck, make, cmake, universal-ctags, TokToken | yes |
+| `ghcr.io/jamesjnadeau/hermes-workers/default:alpine` | `nikolaik/python-nodejs:python3.13-nodejs26-alpine` | the Nous sandbox's CLI tools, `pn` user + sudo, uv/pipenv/poetry/yarn, Pillow, system Chromium + Node Playwright, and the same extras as `default:debian` (incl. universal-ctags and TokToken) | yes |
 | `ghcr.io/jamesjnadeau/hermes-workers/dev:debian` | `default:debian` | git authenticates to GitHub through `gh`, using a token from the environment | yes |
 | `ghcr.io/jamesjnadeau/hermes-workers/dev:alpine` | `default:alpine` | same as `dev:debian` | yes |
 | `hermes-workers/playdate:debian` | `dev:debian` | Playdate SDK, `gcc-arm-none-eabi` + newlib, WebKitGTK for the simulator | **no, local build only** ([why](#playdate)) |

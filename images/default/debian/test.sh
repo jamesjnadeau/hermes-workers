@@ -27,4 +27,7 @@ run "playwright browsers"  test "${PLAYWRIGHT_BROWSERS_PATH:-}" = /opt/playwrigh
 run "chromium headless"    sh -c 'c=$(ls -d /opt/playwright/chromium-*/chrome-linux*/chrome | head -1); "$c" --headless --no-sandbox --disable-gpu --dump-dom "data:text/html,<title>ok</title>" 2>/dev/null | grep -q "<title>ok</title>"'
 run "no github token"      test -z "${GITHUB_TOKEN:-}${GH_TOKEN:-}"
 
+run "ctags is universal"    sh -c 'ctags --version | head -1 | grep -q "Universal Ctags"'
+run "toktoken indexes code" sh -c 'd=$(mktemp -d) && cd "$d" && printf "int answer(void){return 42;}\\n" > a.c && toktoken index:create . >/dev/null 2>&1 && toktoken search:symbols answer | grep -q answer'
+
 _maybe_finish "$@"

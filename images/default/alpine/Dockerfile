@@ -12,7 +12,7 @@ RUN set -eux; \
     apk add --no-cache \
       bash sudo jq ripgrep fd tmux less nano vim zip unzip rsync tree procps htop file \
       util-linux ca-certificates musl-locales git openssh-client curl \
-      github-cli sqlite pandoc-cli poppler-utils yq-go shellcheck make cmake build-base
+      github-cli sqlite pandoc-cli poppler-utils yq-go shellcheck make cmake build-base ctags
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
@@ -59,5 +59,16 @@ RUN curl -fsSL https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-mus
 
 # Login shells (Hermes snapshots `bash -l`) reset PATH in /etc/profile; put cargo back.
 RUN printf '%s\n' 'case ":$PATH:" in *:/usr/local/cargo/bin:*) ;; *) PATH=/usr/local/cargo/bin:$PATH ;; esac' 'export PATH' > /etc/profile.d/hermes-workers-rust.sh
+
+# TokToken (codebase symbol indexer / MCP server for agents). Single binary from the GitHub
+# release, checksum-pinned; it shells out to universal-ctags (apk package: ctags), installed above.
+ARG TOKTOKEN_VERSION=v0.7.0
+ARG TOKTOKEN_SHA256=e0359d1237e9d834b649df110be99063777cd0dd2b1dc793de8804b84e67ca2a
+RUN set -eux; \
+    curl -fsSL -o /usr/local/bin/toktoken \
+      "https://github.com/mauriziofonte/toktoken/releases/download/${TOKTOKEN_VERSION}/toktoken-linux-x86_64"; \
+    echo "${TOKTOKEN_SHA256}  /usr/local/bin/toktoken" | sha256sum -c -; \
+    chmod 755 /usr/local/bin/toktoken; \
+    toktoken --version
 
 CMD ["sleep", "infinity"]
